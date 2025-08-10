@@ -1,119 +1,35 @@
-// SPA logic for Algebra Quest (polished, mobile-first, Safari-friendly)
+
+// Algebra Quest — Final SPA (compact)
 function setVh(){document.documentElement.style.setProperty('--vh', window.innerHeight*0.01+'px');}
 setVh(); window.addEventListener('resize', setVh);
-
-function genArithmetic(){const a=Math.floor(Math.random()*12)+1; const b=Math.floor(Math.random()*12)+1; return {prompt: `${a} + ${b}`, answer: (a+b).toString(), type:'arithmetic'};}
-function genLinear(){const a=Math.floor(Math.random()*9)+1; const x=Math.floor(Math.random()*11)-5; const b=Math.floor(Math.random()*11)-5; const c=a*x+b; return {prompt: `${a}x + ${b} = ${c}`, answer: x.toString(), type:'linear'};}
-function genQuadratic(){const p=Math.floor(Math.random()*9)-4; const q=Math.floor(Math.random()*9)-4; const b=p+q; const c=p*q; const prompt=`x^2 ${b>=0?'+':'-'}${Math.abs(b)}x ${c>=0?'+':'-'}${Math.abs(c)}`; const roots=[(-p).toString(),(-q).toString()]; return {prompt, answer:roots, type:'quadratic'};}
-const TOPICS=[genArithmetic,genLinear,genQuadratic];
-
-let audioCtx=null;
-function playTone(freq,type='sine',time=0.12){ try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination); g.gain.value=0.0001; const now=audioCtx.currentTime; g.gain.exponentialRampToValueAtTime(0.12, now+0.01); o.start(now); g.gain.exponentialRampToValueAtTime(0.0001, now+time); o.stop(now+time+0.02);}catch(e){console.warn('Audio error',e)}}
-
-let state={settings:{problemsPerRound:5,enableSound:true},progress:{xp:0,streak:0,lastPlayed:null},round:{problems:[],index:0,correct:0}};
-try{ const saved=JSON.parse(localStorage.getItem('algebra_quest_state')||'{}'); if(saved.settings) state.settings=saved.settings; if(saved.progress) state.progress=saved.progress;}catch(e){}
-
-function saveState(){ const s={settings:state.settings,progress:state.progress}; try{localStorage.setItem('algebra_quest_state',JSON.stringify(s))}catch(e){}}
-
-const refs = {
- home: document.getElementById('home'),
- game: document.getElementById('game'),
- result: document.getElementById('result'),
- settings: document.getElementById('settings'),
- questionText: document.getElementById('questionText'),
- answerInput: document.getElementById('answerInput'),
- feedback: document.getElementById('feedback'),
- scoreEl: document.getElementById('score'),
- progressFill: document.getElementById('progressFill'),
- qCounter: document.getElementById('qCounter'),
- problemsPerRoundInput: document.getElementById('problemsPerRound'),
- enableSoundInput: document.getElementById('enableSound'),
-}
-
-refs.problemsPerRoundInput.value = state.settings.problemsPerRound;
-refs.enableSoundInput.checked = state.settings.enableSound;
-
-function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='game') setTimeout(()=>refs.answerInput.focus(),300);}
-
-function newRound(){
-  const n = Number(state.settings.problemsPerRound)||5;
-  const problems = [];
-  for(let i=0;i<n;i++){ const g = TOPICS[Math.floor(Math.random()*TOPICS.length)]; problems.push(g()); }
-  state.round = { problems, index:0, correct:0 };
-  updateUIForProblem();
-  showScreen('game');
-  updateProgressBar();
-}
-
-function updateUIForProblem(){
-  const p = state.round.problems[state.round.index];
-  refs.questionText.textContent = p.prompt;
-  refs.answerInput.value = '';
-  refs.feedback.textContent = '';
-  refs.qCounter.textContent = `${state.round.index+1} / ${state.round.problems.length}`;
-  updateProgressBar();
-}
-
-function updateProgressBar(){
-  const total = state.round.problems.length || 1;
-  const fill = Math.round(((state.round.index)/total)*100);
-  refs.progressFill.style.width = fill + '%';
-}
-
-function finishRound(){
-  const correct = state.round.correct;
-  const total = state.round.problems.length;
-  const today = new Date().toISOString().slice(0,10);
-  if(state.progress.lastPlayed){
-    const diff = Math.floor((new Date(today)-new Date(state.progress.lastPlayed))/(1000*60*60*24));
-    if(diff===1) state.progress.streak=(state.progress.streak||0)+1; else state.progress.streak=1;
-  } else { state.progress.streak=1; }
-  state.progress.lastPlayed = today;
-  state.progress.xp = (state.progress.xp||0) + correct*10;
-  saveState();
-  document.getElementById('resultText').textContent = `You scored ${correct} / ${total}. XP: ${state.progress.xp}  Streak: ${state.progress.streak}`;
-  refs.scoreEl.textContent = `Score: ${state.progress.xp}`;
-  showScreen('result');
-}
-
-function submitAnswer(){
-  const p = state.round.problems[state.round.index];
-  const user = refs.answerInput.value.trim();
-  let correct=false;
-  if(Array.isArray(p.answer)) correct = p.answer.map(String).includes(user);
-  else correct = String(p.answer) === user || (Number(user) && Math.abs(Number(user)-Number(p.answer))<0.01);
-  if(correct){ state.round.correct +=1; refs.feedback.textContent='✅ Correct!'; if(state.settings.enableSound) playTone(880,'sine',0.12); }
-  else { refs.feedback.textContent = `❌ Incorrect — Answer: ${Array.isArray(p.answer)?p.answer.join(', '):p.answer}`; if(state.settings.enableSound) playTone(220,'sawtooth',0.22); }
-  state.round.index +=1; updateProgressBar();
-  setTimeout(()=>{ if(state.round.index >= state.round.problems.length) finishRound(); else updateUIForProblem(); }, 800);
-}
-
-// event bindings
-document.getElementById('startBtn').onclick = ()=>newRound();
-document.getElementById('settingsBtn').onclick = ()=>showScreen('settings');
-document.getElementById('backBtn').onclick = ()=>showScreen('home');
-document.getElementById('saveSettingsBtn').onclick = ()=>{
-  state.settings.problemsPerRound = Number(refs.problemsPerRoundInput.value)||5;
-  state.settings.enableSound = refs.enableSoundInput.checked;
-  saveState();
-  showScreen('home');
-};
-document.getElementById('submitBtn').onclick = submitAnswer;
-refs.answerInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') submitAnswer(); });
-document.getElementById('playAgainBtn').onclick = ()=>newRound();
-document.getElementById('homeBtn').onclick = ()=>showScreen('home');
-document.getElementById('hintBtn').onclick = ()=>{
-  const p = state.round.problems[state.round.index];
-  let steps = ['Try to isolate the unknown or compute the arithmetic.'];
-  if(p.type==='linear') steps = ['Move constants to the other side','Divide by the coefficient of x','Compute result'];
-  if(p.type==='quadratic') steps = ['Try factoring into (x + p)(x + q)','Find p and q or use quadratic formula'];
-  if(p.type==='arithmetic') steps = ['Follow PEMDAS, compute sums or products'];
-  alert('Steps:\n'+steps.join('\n'));
-};
-
-// register service worker
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }
-
-// init
-refs.scoreEl.textContent = `Score: ${state.progress.xp||0}`;
-showScreen('home');
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const LS_KEY='algebra_quest_state_v2'; let STATE={settings:{selectedLevel:1,problemsPerRound:100,enableSound:true,verboseSteps:false},progress:{xp:0,unlocked:[1],scores:{}},pools:{}}; try{const s=JSON.parse(localStorage.getItem(LS_KEY)||'null'); if(s) STATE=s}catch(e){console.warn(e)}
+function save(){localStorage.setItem(LS_KEY,JSON.stringify(STATE))}
+const el=id=>document.getElementById(id);
+const levelButtons=el('levelButtons'), startAtLevelBtn=el('startAtLevelBtn'), problemsPerRoundInput=el('problemsPerRound'), enableSoundInput=el('enableSound'), verboseToggle=el('verboseToggle'), scoreEl=el('score'), levelInfo=el('levelInfo'), progressFill=el('progressFill'), progressText=el('progressText'), questionText=el('questionText'), answerInput=el('answerInput'), submitBtn=el('submitBtn'), stepsBtn=el('stepsBtn'), feedback=el('feedback'), stepsModal=el('stepsModal'), stepsList=el('stepsList'), closeStepsBtn=el('closeStepsBtn'), advanceBtn=el('advanceBtn'), retryBtn=el('retryBtn'), homeBtn=el('homeBtn'), endSummary=el('endSummary'), celebration=el('celebration');
+function playTone(f,t='sine',d=0.12){ if(!STATE.settings.enableSound) return; try{ const C=new (window.AudioContext||window.webkitAudioContext)(); const o=C.createOscillator(); const g=C.createGain(); o.type=t; o.frequency.value=f; o.connect(g); g.connect(C.destination); g.gain.value=0.0001; const now=C.currentTime; g.gain.exponentialRampToValueAtTime(0.12,now+0.01); o.start(now); g.gain.exponentialRampToValueAtTime(0.0001,now+d); o.stop(now+d+0.02);}catch(e){} }
+function playSuccess(){playTone(880)} function playFail(){playTone(220,'sawtooth',0.18)} function playLevelUp(){playTone(1200,'triangle',0.28); playTone(1600,'sine',0.18)}
+const LEVEL_SPEC = {1:{name:'Addition',gen:()=>{const a=randInt(1,9),b=randInt(1,9);return {prompt:`${a} + ${b}`,answer:(a+b).toString(),type:'arithmetic'}}},2:{name:'Subtraction',gen:()=>{const a=randInt(5,20),b=randInt(1,9);return {prompt:`${a} - ${b}`,answer:(a-b).toString(),type:'arithmetic'}}},3:{name:'Multiplication',gen:()=>{const a=randInt(2,12),b=randInt(2,12);return {prompt:`${a} × ${b}`,answer:(a*b).toString(),type:'arithmetic'}}},4:{name:'Mixed Ops',gen:()=>{const a=randInt(1,8),b=randInt(1,8),c=randInt(1,8);return {prompt:`${a} × (${b} + ${c})`,answer:(a*(b+c)).toString(),type:'arithmetic'}}},5:{name:'One-step eq',gen:()=>{const a=randInt(1,10),x=randInt(1,10),b=a+x;return {prompt:`x + ${a} = ${b}`,answer:x.toString(),type:'linear'}}},6:{name:'Two-step eq',gen:()=>{const a=randInt(2,6),x=randInt(1,10),b=randInt(0,10),c=a*x+b;return {prompt:`${a}x + ${b} = ${c}`,answer:x.toString(),type:'linear'}}},7:{name:'Distribution',gen:()=>{const a=randInt(1,6),b=randInt(1,6),c=randInt(1,6),x=randInt(1,6);return {prompt:`${a}(${b}x + ${c}) = ${a*b*x + a*c}`,answer:x.toString(),type:'linear'}}},8:{name:'Fractions',gen:()=>{const denom=randInt(2,6),num=randInt(1,9),x=randInt(1,10),b=randInt(1,6);const c=(num/denom)*x + b;return {prompt:`${num}/${denom}x + ${b} = ${c}`,answer:x.toString(),type:'linear'}}},9:{name:'Inequalities',gen:()=>{const a=randInt(1,6),x=randInt(1,8),b=randInt(0,10),c=a*x+b;return {prompt:`${a}x + ${b} < ${c+randInt(1,3)}`,answer:x.toString(),type:'inequality'}}},10:{name:'Word problems',gen:()=>{const x=randInt(1,8),y=randInt(1,8),s=x+y,d=x-y;return {prompt:`Two numbers sum to ${s} and differ by ${d}. Find first number.`,answer:x.toString(),type:'word'}}}}
+function ensurePool(level){ if(STATE.pools[level] && STATE.pools[level].length>=100) return; STATE.pools[level]=[]; const seen=new Set(); while(STATE.pools[level].length<100){ const p=LEVEL_SPEC[level].gen(); const k=JSON.stringify(p); if(!seen.has(k)){seen.add(k); STATE.pools[level].push(p);} } save(); }
+for(let i=1;i<=10;i++) ensurePool(i);
+function solveProblem(problem,verbose){ const steps=[]; const t=problem.type; if(t==='arithmetic'){ if(problem.prompt.includes('×')){ const [a,b]=problem.prompt.replace('×','*').split('*').map(s=>s.trim()); steps.push(`Start with: ${a} × ${b}`); steps.push(`Multiply: ${a} × ${b} = ${Number(a)*Number(b)}`); return steps;} if(problem.prompt.includes('+')){ const [a,b]=problem.prompt.split('+').map(s=>s.trim()); steps.push(`Start with: ${a} + ${b}`); steps.push(`Add: ${a} + ${b} = ${Number(a)+Number(b)}`); return steps;} if(problem.prompt.includes('-')){ const [a,b]=problem.prompt.split('-').map(s=>s.trim()); steps.push(`Start with: ${a} - ${b}`); steps.push(`Subtract: ${a} - ${b} = ${Number(a)-Number(b)}`); return steps;} steps.push('Compute step-by-step using arithmetic.'); return steps;} if(t==='linear'){ const s=problem.prompt.replace(/\s+/g,''); const m=s.match(/^([+-]?\d*)x([+-]?\d*)=([+-]?\d+)$/); if(m){ const a=m[1]===''?1:(m[1]==='-'?-1:Number(m[1])); const b=m[2]===''?0:Number(m[2]); const c=Number(m[3]); steps.push(`Start with: ${a}x ${b>=0?'+':''}${b} = ${c}`); steps.push(`Subtract ${b} from both sides: ${a}x = ${c - b}`); steps.push(`Divide both sides by ${a}: x = ${(c - b)/a}`); return steps;} const m2=problem.prompt.match(/^x\+?(\d*)=(\d*)$/); if(m2){ const a=Number(m2[1]), b=Number(m2[2]); steps.push(`Start with: x + ${a} = ${b}`); steps.push(`Subtract ${a} from both sides: x = ${b} - ${a}`); steps.push(`Compute: x = ${b - a}`); return steps;} steps.push('Isolate x by moving constants and dividing by coefficients.'); return steps;} if(t==='inequality'){ steps.push('Isolate the variable. Remember to flip inequality when multiplying/dividing by negative.'); return steps;} if(t==='word'){ steps.push('Translate the words into equations, assign variables, then solve step-by-step.'); return steps;} return ['No steps available.']; }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='game') setTimeout(()=>answerInput.focus(),300); }
+function updateLevelButtons(){ levelButtons.innerHTML=''; for(let i=1;i<=10;i++){ const btn=document.createElement('button'); btn.textContent=i; btn.className='level-button'; if(!STATE.progress.unlocked.includes(i)) btn.classList.add('locked'); btn.dataset.level=i; btn.onclick=()=>{ STATE.settings.selectedLevel=i; document.querySelectorAll('.level-button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); save(); }; if(Number(STATE.settings.selectedLevel)===i) btn.classList.add('active'); levelButtons.appendChild(btn);} }
+updateLevelButtons();
+let runtime={level:STATE.settings.selectedLevel,index:0,correct:0,total:STATE.settings.problemsPerRound||100};
+function loadLevel(level){ runtime.level=level; runtime.index=0; runtime.correct=0; runtime.total=Math.min(STATE.pools[level].length, Number(STATE.settings.problemsPerRound)||100); levelInfo.textContent=`Level ${level}: ${LEVEL_SPEC[level].name}`; updateProgress(); showScreen('game'); showProblem(); }
+function showProblem(){ const p=STATE.pools[runtime.level][runtime.index]; questionText.textContent=p.prompt; answerInput.value=''; feedback.textContent=''; updateProgress(); }
+function updateProgress(){ const total=runtime.total||1; const filled=Math.round((runtime.index/total)*100); progressFill.style.width=filled+'%'; progressText.textContent=`${Math.min(runtime.index+1,total)} / ${total}`; scoreEl.textContent=`XP: ${STATE.progress.xp||0}`; }
+function showSteps(problem){ const steps=solveProblem(problem, STATE.settings.verboseSteps||verboseToggle.checked); stepsList.innerHTML=''; steps.forEach(s=>{const li=document.createElement('li'); li.textContent=s; stepsList.appendChild(li);}); stepsModal.setAttribute('aria-hidden','false'); }
+el('closeStepsBtn').onclick=()=>stepsModal.setAttribute('aria-hidden','true'); stepsBtn.onclick=()=>{ const p=STATE.pools[runtime.level][runtime.index]; showSteps(p); }
+function checkAnswer(){ const p=STATE.pools[runtime.level][runtime.index]; const user=answerInput.value.trim(); let correct=false; if(Array.isArray(p.answer)) correct=p.answer.map(String).includes(user); else correct=String(p.answer)===user || (Number(user) && Math.abs(Number(user)-Number(p.answer))<0.01); if(correct){ runtime.correct+=1; feedback.textContent='✅ Correct!'; playSuccess(); } else { feedback.textContent=`❌ Incorrect — Answer: ${Array.isArray(p.answer)?p.answer.join(', '):p.answer}`; playFail(); } runtime.index+=1; updateProgress(); setTimeout(()=>{ if(runtime.index>=runtime.total){ endLevel(); } else showProblem(); },700); }
+function endLevel(){ const correct=runtime.correct; const total=runtime.total; const pct=Math.round((correct/total)*100); STATE.progress.scores[runtime.level]={correct,total,pct}; STATE.progress.xp=(STATE.progress.xp||0)+correct*5; let unlockedMsg=''; if(pct>=80){ const next=runtime.level+1; if(next<=10 && !STATE.progress.unlocked.includes(next)){ STATE.progress.unlocked.push(next); unlockedMsg=` Level ${next} unlocked!`; playLevelUp(); }} save();
+ celebration.innerHTML=''; if(runtime.level<10){ const conf=document.createElement('div'); conf.className='mini-confetti'; conf.textContent='🎉'; celebration.appendChild(conf); setTimeout(()=>{celebration.innerHTML='';},2600); } else { const t=document.createElement('div'); t.className='trophy'; t.textContent='🏆'; celebration.appendChild(t); setTimeout(()=>{celebration.innerHTML='';},5200); }
+ document.getElementById('endTitle').textContent=`Level ${runtime.level} Complete`; endSummary.textContent=`Score: ${correct} / ${total} (${pct}%). XP: ${STATE.progress.xp}.${unlockedMsg}`; el('unlockText').textContent=unlockedMsg; showScreen('end'); }
+el('advanceBtn').onclick=()=>{ const next=runtime.level+1; if(STATE.progress.scores[runtime.level] && STATE.progress.scores[runtime.level].pct>=80){ if(next<=10){ loadLevel(next); showScreen('game'); } else { loadLevel(10); } } else alert('You need at least 80% to advance.'); }
+el('retryBtn').onclick=()=>{ STATE.pools[runtime.level]=shuffle(STATE.pools[runtime.level]); runtime.index=0; runtime.correct=0; save(); loadLevel(runtime.level); }
+el('homeBtn').onclick=()=>{ updateLevelButtons(); showScreen('levelSelect'); }
+startAtLevelBtn.onclick=()=>{ const lvl=Number(STATE.settings.selectedLevel)||1; if(!STATE.progress.unlocked.includes(lvl)){ alert('Level locked. Reach 80% on previous levels to unlock.'); return; } loadLevel(lvl); }
+el('quitBtn').onclick=()=>homeBtn.onclick(); submitBtn.onclick=()=>checkAnswer(); el('openSettingsBtn').onclick=()=>showScreen('settings'); el('saveSettingsBtn').onclick=()=>{ STATE.settings.problemsPerRound=Math.min(100,Math.max(1,Number(problemsPerRoundInput.value)||100)); STATE.settings.enableSound=enableSoundInput.checked; STATE.settings.verboseSteps=verboseToggle.checked; save(); alert('Settings saved.'); showScreen('levelSelect'); }
+updateLevelButtons(); scoreEl.textContent=`XP: ${STATE.progress.xp||0}`; showScreen('levelSelect');

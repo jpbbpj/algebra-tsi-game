@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#6d28d9"/>
-<title>Algebra Quest — TSI Trainer</title>
+<title>Algebra Quest — Final</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="/styles.css">
 </head>
@@ -13,24 +13,28 @@
   <div id="app" class="app-root">
     <header class="topbar">
       <div class="title">Algebra Quest</div>
-      <div class="score" id="score">Score: 0</div>
+      <div class="score" id="score">XP: 0</div>
     </header>
 
     <main class="main" id="main">
-      <section id="home" class="screen active">
-        <h1>Algebra Quest</h1>
-        <p class="lead">Daily mini-rounds to train you for the TSI math exam — quick, fun, and mobile-friendly.</p>
+      <section id="levelSelect" class="screen active">
+        <h1>Choose Level</h1>
+        <p class="lead">Pick a level (1–10). Levels unlock as you reach 80% or higher.</p>
+        <div id="levelButtons" class="level-buttons"></div>
         <div class="controls">
-          <button id="startBtn" class="btn primary">Start Game</button>
-          <button id="settingsBtn" class="btn">Settings</button>
+          <button id="startAtLevelBtn" class="btn primary">Start Selected Level</button>
+          <button id="openSettingsBtn" class="btn">Settings</button>
         </div>
-        <div class="small">Tap once per day to keep your streak going!</div>
+        <div class="small">Tip: You must score ≥80% to unlock the next level.</div>
       </section>
 
       <section id="game" class="screen">
-        <div class="progress">
-          <div id="progressBar" class="progress-bar"><div id="progressFill" class="fill"></div></div>
-          <div id="qCounter" class="q-counter">1 / 5</div>
+        <div class="game-top">
+          <div id="levelInfo" class="level-info">Level 1</div>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div id="progressFill" class="fill"></div></div>
+            <div id="progressText" class="progress-text">0 / 100</div>
+          </div>
         </div>
 
         <div class="card question-card">
@@ -38,37 +42,50 @@
           <input id="answerInput" class="answer-input" inputmode="numeric" pattern="[0-9]*" placeholder="Your answer" />
           <div class="actions">
             <button id="submitBtn" class="btn primary">Submit</button>
-            <button id="hintBtn" class="btn">Show steps</button>
+            <button id="stepsBtn" class="btn">Show Steps</button>
           </div>
           <div id="feedback" class="feedback"></div>
         </div>
+        <div class="controls small-controls">
+          <button id="quitBtn" class="btn">Quit</button>
+          <label class="small">Verbose steps <input id="verboseToggle" type="checkbox" /></label>
+        </div>
       </section>
 
-      <section id="result" class="screen">
-        <h2 id="resultTitle">Round Complete</h2>
-        <p id="resultText">You scored 4 / 5</p>
+      <section id="end" class="screen">
+        <div id="celebration" class="celebration"></div>
+        <h2 id="endTitle">Level Complete</h2>
+        <p id="endSummary"></p>
         <div class="controls">
-          <button id="playAgainBtn" class="btn primary">Play Again</button>
+          <button id="advanceBtn" class="btn primary">Advance</button>
+          <button id="retryBtn" class="btn">Repeat Level</button>
           <button id="homeBtn" class="btn">Home</button>
         </div>
+        <div class="small" id="unlockText"></div>
       </section>
 
       <section id="settings" class="screen">
         <h2>Settings</h2>
-        <label>Problems per round
-          <input id="problemsPerRound" type="number" min="1" max="15" value="5"/>
-        </label>
-        <label>Enable sound
-          <input id="enableSound" type="checkbox" checked/>
-        </label>
+        <label>Problems per round (max 100)<input id="problemsPerRound" type="number" min="1" max="100" value="100"/></label>
+        <label>Enable sound <input id="enableSound" type="checkbox" checked/></label>
         <div class="controls">
           <button id="saveSettingsBtn" class="btn primary">Save</button>
-          <button id="backBtn" class="btn">Back</button>
+          <button id="settingsBackBtn" class="btn">Back</button>
         </div>
       </section>
     </main>
 
-    <footer class="footer">Built for practice — not official TSI material.</footer>
+    <footer class="footer">Built for TSI practice — explanatory steps & progression.</footer>
+  </div>
+
+  <div id="stepsModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <h3>Worked solution</h3>
+      <ol id="stepsList" class="steps-list"></ol>
+      <div class="controls">
+        <button id="closeStepsBtn" class="btn">Close</button>
+      </div>
+    </div>
   </div>
 
 <script src="/app.js" type="module"></script>
