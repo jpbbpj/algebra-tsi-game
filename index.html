@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#6d28d9"/>
+<title>Algebra Quest — TSI Trainer</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app" class="app-root">
+    <header class="topbar">
+      <div class="title">Algebra Quest</div>
+      <div class="score" id="score">Score: 0</div>
+    </header>
+
+    <main class="main" id="main">
+      <section id="home" class="screen active">
+        <h1>Algebra Quest</h1>
+        <p class="lead">Daily mini-rounds to train you for the TSI math exam — quick, fun, and mobile-friendly.</p>
+        <div class="controls">
+          <button id="startBtn" class="btn primary">Start Game</button>
+          <button id="settingsBtn" class="btn">Settings</button>
+        </div>
+        <div class="small">Tap once per day to keep your streak going!</div>
+      </section>
+
+      <section id="game" class="screen">
+        <div class="progress">
+          <div id="progressBar" class="progress-bar"><div id="progressFill" class="fill"></div></div>
+          <div id="qCounter" class="q-counter">1 / 5</div>
+        </div>
+
+        <div class="card question-card">
+          <div id="questionText" class="question">3 + 4</div>
+          <input id="answerInput" class="answer-input" inputmode="numeric" pattern="[0-9]*" placeholder="Your answer" />
+          <div class="actions">
+            <button id="submitBtn" class="btn primary">Submit</button>
+            <button id="hintBtn" class="btn">Show steps</button>
+          </div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+      </section>
+
+      <section id="result" class="screen">
+        <h2 id="resultTitle">Round Complete</h2>
+        <p id="resultText">You scored 4 / 5</p>
+        <div class="controls">
+          <button id="playAgainBtn" class="btn primary">Play Again</button>
+          <button id="homeBtn" class="btn">Home</button>
+        </div>
+      </section>
+
+      <section id="settings" class="screen">
+        <h2>Settings</h2>
+        <label>Problems per round
+          <input id="problemsPerRound" type="number" min="1" max="15" value="5"/>
+        </label>
+        <label>Enable sound
+          <input id="enableSound" type="checkbox" checked/>
+        </label>
+        <div class="controls">
+          <button id="saveSettingsBtn" class="btn primary">Save</button>
+          <button id="backBtn" class="btn">Back</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">Built for practice — not official TSI material.</footer>
+  </div>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>
